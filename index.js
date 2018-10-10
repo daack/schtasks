@@ -3,6 +3,7 @@
 const sudo = require('sudo-prompt')
 const util = require('util')
 const parseXml = require('xml2js').parseString
+const os = require('os')
 
 const mapping = {
   schedule: '/SC',
@@ -21,6 +22,25 @@ const mapping = {
   level: '/RL',
   enable: '/ENABLE',
   disable: '/DISABLE'
+}
+
+/**
+ * Returns user name that will be used for the task.
+ *
+ * If null or false is passed, SYSTEM user is be returned.
+ * If true is returned, current logged user is returned.
+ * Or given string value is returned.
+ *
+ * @param {string|boolean|null} value
+ * @return {string}
+ */
+function getUser (value) {
+  if (value === null || value === false) {
+    return 'SYSTEM'
+  } else if (value === true) {
+        return os.userInfo().username
+  }
+  return value
 }
 
 function mapFields (cmd) {
@@ -46,7 +66,7 @@ function exec () {
   return sudo_exec(...arguments)
 }
 
-exports.create = function (task, cmd) {
+exports.create = function (task, cmd, user = null) {
   cmd['taskname'] = `"${task}"`
 
   let fields = mapFields(cmd)
@@ -57,7 +77,7 @@ exports.create = function (task, cmd) {
   ])
 
   fields.push(...[
-    '/RU SYSTEM',
+    '/RU ' + getUser(user),
     '/F'  
   ])
 
@@ -123,7 +143,7 @@ exports.stop = function (task) {
   return exec(fields.join(' '), { name: task })
 }
 
-exports.update = function (task, cmd) {
+exports.update = function (task, cmd, user = null) {
   cmd['taskname'] = `"${task}"`
 
   let fields = mapFields(cmd)
@@ -133,7 +153,8 @@ exports.update = function (task, cmd) {
     '/Change' 
   ])
 
-  fields.push('/RU SYSTEM')
+  fields.push('/RU ' + getUser(user))
 
   return exec(fields.join(' '), { name: task })
 }
+exports.getUser = getUser
